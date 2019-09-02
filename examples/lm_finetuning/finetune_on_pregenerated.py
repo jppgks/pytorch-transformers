@@ -239,15 +239,6 @@ def main():
     # if args.fp16:
     #     model.half()
     model.to(device)
-    if args.local_rank != -1:
-        try:
-            from apex.parallel import DistributedDataParallel as DDP
-        except ImportError:
-            raise ImportError(
-                "Please install apex from https://www.github.com/nvidia/apex to use distributed and fp16 training.")
-        model = DDP(model)
-    elif n_gpu > 1:
-        model = torch.nn.DataParallel(model)
 
     # Prepare optimizer
     param_optimizer = list(model.named_parameters())
@@ -274,6 +265,16 @@ def main():
         # This below line of code is the main upgrade of Apex Fp16 implementation. I chose opt_leve="01"
         # because it's recommended for typical use by Apex. We can make it configured
         model, optimizer = amp.initialize(model, optimizer, opt_level="O1")
+
+    if args.local_rank != -1:
+        try:
+            from apex.parallel import DistributedDataParallel as DDP
+        except ImportError:
+            raise ImportError(
+                "Please install apex from https://www.github.com/nvidia/apex to use distributed and fp16 training.")
+        model = DDP(model)
+    elif n_gpu > 1:
+        model = torch.nn.DataParallel(model)
 
     # We don't need to use FP16_Optimizer wrapping over FusedAdam as well. Now Apex supports all Pytorch Optimizer
 
